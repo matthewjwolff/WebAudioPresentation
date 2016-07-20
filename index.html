@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>reveal.js</title>
+
+  <link rel="stylesheet" href="css/reveal.css">
+  <link rel="stylesheet" href="css/theme/black.css">
+
+  <!-- Theme used for syntax highlighting of code -->
+  <link rel="stylesheet" href="lib/css/zenburn.css">
+
+  <!-- Printing and PDF exports -->
+  <script>
+  var link = document.createElement( 'link' );
+  link.rel = 'stylesheet';
+  link.type = 'text/css';
+  link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+  document.getElementsByTagName( 'head' )[0].appendChild( link );
+  </script>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section>
+        <h1>The WebAudio API</h1>
+        <h3>or how an idea becomes a standard</h3>
+        <p>Matthew Wolff<p>
+        </section>
+        <section>
+          <section>
+            <h2>What is a Web API?</h2>
+            <ul>
+              <li>Browsers contain a ton of functionality</li>
+              <ul>
+                <li>Needs to render images, play video streams, run JavaScript, etc</li>
+              </ul>
+              <li>Developers want to do things too complicated for a JavaScript engine on its own</li>
+            </ul>
+          </section>
+          <section>
+            <h2>Sound familiar?</h2>
+            <img src="https://upload.wikimedia.org/wikipedia/en/1/16/WebGL_Logo.png"></img>
+            <ul>
+              <li>Real-time graphics</li>
+              <li>WebGL <b><i>exposes</i></b> low-level graphics functions to the web programmer's JavaScript environment</li>
+            </ul>
+          </section>
+        </section>
+        <section>
+          <section>
+            <h2>WebAudio</h2>
+            <p>A web framework built into the browser that exposes low-level audio functions</p>
+          </section>
+          <section>
+            <h3>How?</h3>
+            <p>Graph metaphor</p>
+            <img src="./wagraph.png" class="fragment" data-fragment-index="1">
+            <span  class="fragment" data-fragment-index="2"><p>FireFox audio graph for <a href="http://tonejs.org/examples/fmSynth.html">this project</a></p></span>
+          </section>
+        </section>
+        <section>
+          <section>
+            <h2>A closer look at a WebAudio graph</h2>
+            <p>A graph connects nodes together. Audio in this case travels from the input of one node to the output of another node</p>
+            <img src="https://mdn.mozillademos.org/files/12241/webaudioAPI_en.svg"/>
+          </section>
+          <section>
+            <p>Firefox Developer Edition users can see the graph in their developer tools</p>
+            <img src="https://mdn.mozillademos.org/files/10171/web-audio-editor.png"/>
+            <p style="text-size: 11pt">Developer Tools (usually F12) → Settings → Web Audio </p>
+          </section>
+        </section>
+        <section>
+          <h2>Some basic types</h2>
+            <ul>
+              <li><code>AudioContext</code><p>Represents an audio graph, containing some environment information like sample rate and the sound destination (speakers)</p></li>
+              <li><code>AudioNode</code><p>A node in the graph that processes audio. Can have sources and destinations</p></li>
+              <li><code>AudioParam</code><p>An object that contains properties of audio. Usuall attached to <code>AudioNode</code>s and can receive audio signals to modify their properties</p></li>
+            </ul>
+        </section>
+        <section>
+          <section>
+            <h2>Let's build a graph!</h2>
+            <p>and make some sounds too!</p>
+          </section>
+          <section>
+            <h2>The Oscillator node</h2>
+            <pre>
+<code>function oscillate() {
+  window.audioCtx = (window.audioCtx || new AudioContext())
+  window.oscillator = audioCtx.createOscillator()
+  oscillator.frequency.value = 440
+  oscillator.connect(audioCtx.destination)
+  oscillator.start()
+}
+
+function stop() {
+  oscillator.stop()
+  oscillator.disconnect()
+  oscillator = null
+}</code>
+            </pre>
+            <button onmousedown="oscillate()" onmouseup="stop()">Oscillator</button>
+          </section>
+          <section>
+            <h2>The Gain node</h2>
+            <pre>
+<code>function startGain() {
+  oscillator = audioCtx.createOscillator()
+  window.gainNode = audioCtx.createGain()
+  oscillator.connect(gainNode)
+  gainNode.connect(audioCtx.destination)
+  gainNode.gain.value = 0.05
+  oscillator.start()
+}
+
+function gainValue(event) {
+  if(gainNode)
+    gainNode.gain.value = event.srcElement.value
+}</code>
+            </pre>
+            <button onclick="startGain()">Start Gain</button>
+            <input type="range" min="0" max="1" step=".01" oninput="gainValue(event)" value="0"></input>
+            <button onclick="stopSlide()">Stop</button>
+          </section>
+          <section>
+            <h2>Modulation</h2>
+            <p>AudioParams can receive signals too</p>
+            <pre>
+<code>function modulate() {
+  window.audioCtx = (window.audioCtx || new AudioContext())
+  moduloOsc = audioCtx.createOscillator()
+  var toneOsc = audioCtx.createOscillator()
+  rangeGain = audioCtx.createGain()
+  //amplify the modular oscillator from [-1.0, 1.0] (standard audio signal) to +/- this value (detune frequency)
+  rangeGain.gain.value = 0.0 //multiplication except for signals
+  //set modulation frequency to something not extreme
+  moduloOsc.frequency.value = 200 //how often we fluctuate the 'carrier frequency' from -gain to +gain
+  //central pitch of resulting tone
+  toneOsc.frequency.value = 440
+  //conect moduloOsc to the gainNode to amplify
+  moduloOsc.connect(rangeGain)
+  //connect the modulation part to the sound producing part
+  //connect the output wave (set of values flucutating between -40.0 and 40.0 at a rate of 40 cycles per second) to the frequency of the toneOsc
+  //this will fluctuate the frequency of the toneOsc, moving the wave from the pitch 440Hz between 400Hz and 480Hz at a rate of 40 fluctuations per second
+  rangeGain.connect(toneOsc.frequency)
+  //connect toneOsc to speakers
+  toneOsc.connect(audioCtx.destination)
+  //now start the oscillators
+  moduloOsc.start()
+  toneOsc.start()
+}</code>
+            </pre>
+            <button onclick="modulate()">Modulate</button>
+            <input type="range" min="0" max="1000" step="1" oninput="modulateFlux(event)" value="0"></input>
+            <label id="modvalue">0</label>
+          </section>
+        </section>
+        <section>
+          <h2>Wow this stuff is easy</h2>
+          <p>Where do I go to learn more?</p>
+          <a class="fragment" href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API>https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API</a>
+        </section>
+        <section>
+          <h2>Woah nevermind that's really hard and complicated</h2>
+          <p class="fragment" data-fragment-index=1>Don't worry. Some smart dudes have made cool libraries</p>
+          <p class="fragment" data-fragment-index=2><a href=http://github.com/Tonejs/Tone.js>Tone.js</a> (my personal favorite)</p>
+          <p class="fragment" data-fragment-index=2><a href=https://github.com/collective-soundworks/soundworks>Soundworks</a>
+        </section>
+        <section>
+          <h2>Really cool stuff people have done</h2>
+          <div align="justify">
+            <span>
+              <iframe src="https://www.youtube.com/embed/EBkmdNDIR6E">iframe tag not supported</iframe>
+              <label>Matt McKegg performing with <a href=https://github.com/mmckegg/loop-drop-app>Loop Drop</a></label>
+            </span>
+            <span>
+              <iframe src="https://www.youtube.com/embed/9Yk4bYtaOqo">iframe tag not supported</iframe>
+              <label>Soundworks performance by IRCAM</label>
+            </span>
+        </div>
+        </section>
+        <section>
+          <h1>Performance!</h1>
+          <h4>Matthew Wolff</h4>
+          <h5>Presentation by <a href=http://lab.hakim.se/reveal-js>reveal.js</a></h5>
+          <h5>Source code at <a href=https://github.com/mwolff3/SWEAPAudio>GitHub</a></h5>
+        </section>
+      </div>
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+    <script src="js/oscillator.js"></script>
+    <script src="js/gain.js"></script>
+    <script src="js/modulate.js"></script>
+
+    <script>
+    // More info https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+      history: true,
+
+      // More info https://github.com/hakimel/reveal.js#dependencies
+      dependencies: [
+        { src: 'plugin/markdown/marked.js' },
+        { src: 'plugin/markdown/markdown.js' },
+        { src: 'plugin/notes/notes.js', async: true },
+        { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+      ]
+    });
+    </script>
+  </body>
+  </html>
