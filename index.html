@@ -165,6 +165,101 @@ function gainValue(event) {
           </section>
         </section>
         <section>
+          <section>
+            <h2>Premade sound</h2>
+            <p>We can load audio files into a node to do some processing on them</p>
+            <pre>
+<code>function decodeAndPlay() {
+  window.audioCtx = (window.audioCtx || new AudioContext())
+  //create an AudioBufferSourceNode
+  source = audioCtx.createBufferSource()
+  //Decode audio data. On completion execute function with AudioBuffer node containing decoded audio
+  var audioBuffer = audioCtx.decodeAudioData(audioData, (buffer) => {
+    //Add the buffer to the AudioBufferSourceNode
+    source.buffer = buffer
+    //keep track of this buffer
+    audioBuffer = buffer
+    source.connect(context.destination)
+    //what if smash mouth were anime?
+    source.detune.value = 1000
+    source.start()
+  })
+}</code>
+            </pre>
+            <button onclick="decodeAndPlay()">Smash Mouth!</button>
+            <button onclick="cutItOut()">Cut that out</button>
+          </section>
+          <section>
+            <h2>Linking the <code>AudioBufferSourceNode</code></h2>
+            <p>An <code>AudioBufferSourceNode</code> is just like any other <code>AudioNode</code></p>
+            <pre>
+<code>function chorus() {
+  mainSource = audioCtx.createBufferSource()
+  chorusSource = audioCtx.createBufferSource()
+  mainSource.buffer = audioBuffer
+  chorusSource.buffer = audioBuffer
+  var lfo = audioCtx.createOscillator()
+  var lfoGain = audioCtx.createGain()
+  lfoGain.gain.value = 50
+  lfo.frequency.value = 10
+  lfo.connect(lfoGain)
+  lfo.start()
+  lfoGain.connect(chorusSource.detune)
+  mainSource.connect(audioCtx.destination)
+  chorusSource.connect(audioCtx.destination)
+  mainSource.start()
+  chorusSource.start()
+}</code>
+            </pre>
+            <button onclick="chorus()">A Chorus Line!</button>
+            <button onclick="stopChorus()">Stop Chorus</button>
+            <aside class="notes">Used in VVVVVV</aside>
+          </section>
+          <section>
+            <h2>Flanger!</h2>
+            <pre>
+<code>//https://github.com/cwilso/Audio-Input-Effects
+//I got lazy
+function flanger() {
+  window.audioContext = (window.audioCtx || new AudioContext())
+  var delayNode = audioContext.createDelay();
+    delayNode.delayTime.value = .005;
+
+    var inputNode = audioContext.createGain();
+    tone = audioContext.createOscillator()
+    tone.connect(inputNode)
+    var feedback = audioContext.createGain();
+    var osc = audioContext.createOscillator();
+    var gain = audioContext.createGain();
+    gain.gain.value = .002;
+
+    feedback.gain.value = .5;
+
+    osc.type = 'sine';
+    osc.frequency.value = 0.75;
+
+    osc.connect(gain);
+    gain.connect(delayNode.delayTime);
+
+    inputNode.connect( audioContext.destination );
+    inputNode.connect( delayNode );
+    delayNode.connect( audioContext.destination );
+    delayNode.connect( feedback );
+    feedback.connect( inputNode );
+
+    osc.start(0);
+    tone.start()
+}
+
+function stopFlanger() {
+  tone.stop()
+}</code>
+            </pre>
+            <button onclick="flanger()">Flanger</button>
+            <button onclick="stopFlanger()">Stop</button>
+          </section>
+        </section>
+        <section>
           <h2>Wow this stuff is easy</h2>
           <p>Where do I go to learn more?</p>
           <a class="fragment" href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API>https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API</a>
@@ -211,6 +306,7 @@ function gainValue(event) {
     <script src="js/oscillator.js"></script>
     <script src="js/gain.js"></script>
     <script src="js/modulate.js"></script>
+    <script src="js/audiosource.js"></script>
 
     <script>
     // More info https://github.com/hakimel/reveal.js#configuration
@@ -227,4 +323,4 @@ function gainValue(event) {
     });
     </script>
   </body>
-  </html>
+</html>
